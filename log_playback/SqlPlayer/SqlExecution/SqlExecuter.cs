@@ -54,7 +54,8 @@ namespace SqlPlayer
             throw new Exception("No provider available for " + provider);
         }
 
-        private Regex rxBase64 = new Regex(@"(##BASE64\:)([\w/=\+]+)");
+        private Regex rxBase64 = new Regex(@"(##BASE64\:)([\w/=\+]*)");
+        private Regex rxFile = new Regex(@"(##FILE\:)(.+)(?=\n)");
         private Regex rxServer = new Regex(@"(INFORMATION_SCHEMA|sysdatabases|use master)", RegexOptions.IgnoreCase);
         private Regex rxInsert = new Regex(@"^INSERT INTO", RegexOptions.IgnoreCase);
         public async Task Execute(string sql, System.Diagnostics.Stopwatch stopwatch = null)
@@ -62,22 +63,42 @@ namespace SqlPlayer
             var cmd = this._fact.CreateCommand();
             cmd.Connection = this._conn;
 
-            //var didReplace = false;
-            sql = rxBase64.Replace(sql, m => {
-                //didReplace = true;
+            DbParameter AddBinaryParameter(byte[] value)
+            {
                 var p = _fact.CreateParameter();
                 p.DbType = DbType.Binary;
                 p.ParameterName = "@p" + cmd.Parameters.Count;
+                p.Value = value;
+                cmd.Parameters.Add(p);
+                return p;
+            }
+
+            sql = rxBase64.Replace(sql, m => {
                 try
                 {
-                    p.Value = Convert.FromBase64String(m.Groups[2].Value);
+                    var str = m.Groups[2].Value.Trim();
+                    var val = Convert.FromBase64String(str);
+                    return AddBinaryParameter(val).ParameterName;
                 }
                 catch (Exception ex)
                 {
                     throw ex;
                 }
-                cmd.Parameters.Add(p);
-                return p.ParameterName;
+            });
+
+            sql = rxFile.Replace(sql, m => {
+                var path = m.Groups[2].Value.Trim();
+                if (!System.IO.File.Exists(path))
+                    throw new System.IO.FileNotFoundException(path);
+                try
+                {
+                    var val = System.IO.File.ReadAllBytes(path);
+                    return AddBinaryParameter(val).ParameterName;
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
             });
             if (rxServer.IsMatch(sql))
             {
