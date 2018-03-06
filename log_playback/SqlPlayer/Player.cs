@@ -30,7 +30,7 @@ namespace SqlPlayer
         }
 
         System.Diagnostics.Stopwatch _stopwatch = new System.Diagnostics.Stopwatch();
-        LogEntry _lastEntry = null;
+        public LogEntry CurrentEntry { get; private set; } = null; 
         int _index = 0;
         public float TotalDuration { get; private set; } = 0;
         public float TotalOriginalDuration { get; private set; } = 0;
@@ -42,8 +42,8 @@ namespace SqlPlayer
                 return false;
 
             _index++;
-            var delay = _lastEntry != null ? (entry.Time - _lastEntry.Time).TotalMilliseconds : 0;
-            _lastEntry = entry;
+            var delay = CurrentEntry != null ? (entry.Time - CurrentEntry.Time).TotalMilliseconds : 0;
+            CurrentEntry = entry;
 
             //await Task.Delay((int)delay);
 
