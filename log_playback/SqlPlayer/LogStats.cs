@@ -55,6 +55,9 @@ namespace SqlPlayer
                     First = list.First()
                 });
                 var significantStats = stats.Where(_ => _.Count >= 20 || _.TotalDuration >= 1000).ToList();
+                //Always include last stats entry (to get total time)
+                if (significantStats.Count > 0 && significantStats[significantStats.Count - 1] != stats.Last())
+                    significantStats.Add(stats.Last());
                 var result = significantStats.Select((stat, i) => new ChunkStats {
                     Index = stat.First.Entry.Index,
                     Count = stat.Count,
