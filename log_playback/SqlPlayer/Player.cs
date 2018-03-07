@@ -15,14 +15,14 @@ namespace SqlPlayer
     public class Player : IDisposable
     {
         private StreamReader _logReader;
-        private Parser _parser;
+        private ParseLog _parser;
         private SqlExecuter _executer;
 
         public List<LogEntry> ExecutedEntries = new List<LogEntry>();
         public event EventHandler<ExecuteEntryEventArgs> OnPreExecute;
         public event EventHandler<ExecuteEntryEventArgs> OnPostExecute;
 
-        public Player(string file, Parser parser, SqlExecuter executer)
+        public Player(string file, ParseLog parser, SqlExecuter executer)
         {
             _logReader = new StreamReader(file);
             _parser = parser;
