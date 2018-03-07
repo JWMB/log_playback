@@ -27,7 +27,10 @@ namespace SqlPlayer
         public static void Main(string[] args) //async Task 
         {
             var result = CommandLine.Parser.Default.ParseArguments<ArgumentOptions>(args)
-                .WithParsed<ArgumentOptions>(async opts => await Run(opts)) // GetStats Run
+                .WithParsed<ArgumentOptions>(async opts => {
+                    GetStats(opts);
+                    await Run(opts);
+                })
                 .WithNotParsed<ArgumentOptions>((errs) => HandleParseError(errs));
             Console.ReadLine();
         }
@@ -47,7 +50,7 @@ namespace SqlPlayer
             //    LogPath = @"C:\temp\sqllog\logLOCAL.txt"
             //};
 
-            Console.WriteLine("Stopwatch is " + (System.Diagnostics.Stopwatch.IsHighResolution ? "hi-res" : "lo-res"));
+            //Console.WriteLine("Stopwatch is " + (System.Diagnostics.Stopwatch.IsHighResolution ? "hi-res" : "lo-res"));
 
             var tasks = new int[options.NumClients].Select((_, i) => {
                 return RunClient(options.ConnectionString, options.ProviderName, options.LogPath, "p" + i);
@@ -58,7 +61,7 @@ namespace SqlPlayer
             Console.ReadKey();
         }
 
-        static async Task GetStats(ArgumentOptions options)
+        static void GetStats(ArgumentOptions options)
         {
             var chunkStats = LogStats.GatherStats(options.LogPath);
             var statsOutput = "Index\tCount\tTotalDuration\tAccumulatedDuration\tAppDuration\tDiff_AccDur\tDiff_AppDur\tStack\n"
