@@ -27,7 +27,7 @@ namespace SqlPlayer
         public static void Main(string[] args) //async Task 
         {
             var result = CommandLine.Parser.Default.ParseArguments<ArgumentOptions>(args)
-                .WithParsed<ArgumentOptions>(async opts => await Run(opts))
+                .WithParsed<ArgumentOptions>(async opts => await Run(opts)) // GetStats Run
                 .WithNotParsed<ArgumentOptions>((errs) => HandleParseError(errs));
             Console.ReadLine();
         }
@@ -36,6 +36,7 @@ namespace SqlPlayer
             if (System.Diagnostics.Debugger.IsAttached)
                 Console.ReadKey();
         }
+
 
         static async Task Run(ArgumentOptions options)
         {
@@ -57,10 +58,26 @@ namespace SqlPlayer
             Console.ReadKey();
         }
 
+        static async Task GetStats(ArgumentOptions options)
+        {
+            var chunkStats = LogStats.GatherStats(options.LogPath);
+            var statsOutput = "Index\tCount\tTotalDuration\tAccumulatedDuration\tAppDuration\tDiff_AccDur\tDiff_AppDur\tStack\n"
+                + string.Join("\n", chunkStats.Select(stat => string.Join("\t",
+                    new object[] {
+                        stat.Index, stat.Count, stat.TotalDuration, Math.Round(stat.AccumulatedDuration), stat.AppDuration,
+                        Math.Round(stat.DiffAccDur), stat.DiffAppDur, stat.Stack
+                    }.Select(_ => _.ToString())))
+                );
+
+            var statsFile = System.IO.Path.Combine(new System.IO.FileInfo(options.LogPath).Directory.FullName, "stats.txt");
+            System.IO.File.WriteAllText(statsFile, statsOutput);
+            Console.WriteLine(statsOutput);
+
+        }
         private static async Task RunClient(string connectionString, string providerName, string logPath, string playerId = null)
         {
             var executer = SqlExecuter.Create(connectionString, providerName);
-            var player = new Player(logPath, new Parser(), executer);
+            var player = new Player(logPath, new ParseLog(), executer);
             player.OnPostExecute += (sender, args) => {
                 if (args.Entry.Index % 100 == 1)
                     Console.WriteLine("" + playerId + " " + args.Entry.Index + " " + args.Entry.Type + ":" + args.Entry.Time);
